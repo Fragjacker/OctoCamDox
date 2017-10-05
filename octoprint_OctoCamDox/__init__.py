@@ -34,6 +34,9 @@ import json
 import struct
 import imghdr
 
+import cv2
+import numpy as np
+
 import time
 import datetime
 
@@ -74,7 +77,6 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
         self.CameraGridCoordsList = []
         self.GridInfoList = []
         self.currentLayer = 0
-        self.gridIndex = 0
 
         self.cameraImagePath = None
         self.qeue = None
@@ -88,6 +90,9 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
         self.currentPrintJobDir = None #Holds the current printjob folder dir
 
         self.mode = "normal" #Contains the mode for the camera callback
+
+        self.ImageArray = [] #Stores the incoming images in an array
+        self.MergedImage = None #Is created by stitching the tile images together
 
     def on_after_startup(self):
     #     self.imgproc = ImageProcessing(
@@ -143,6 +148,8 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
     def on_event(self, event, payload):
         #extraxt part informations from inline xmly
         if event == "FileSelected":
+            #Reset values just in case another file was loaded before
+            self.resetValues()
             #Initilize the Cameraextractor Class
             newCamExtractor = GCodex(0.25,'T0')
             #Retrieve the basefolder for the GCode uploads
@@ -192,13 +199,15 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
                     newGridMaker.getMaxY(),
                     newGridMaker.getMinY(),
                     newGridMaker.getCenterX(),
-                    newGridMaker.getCenterY()])
+                    newGridMaker.getCenterY(),
+                    newGridMaker.getRows()])
             templist.append(newGridMaker.getCameraCoords())
             count += 1
 
-        #Retrieve the necessary variables to be forwarded to the Octoprint Canvas
+        # Retrieve the necessary variables to be forwarded to the Octoprint Canvas
         self.CameraGridCoordsList = templist
         self.GridInfoList = infoList
+        # Retrieve the info about how many tile rows exist for image stitching
 
 
     """
@@ -239,7 +248,7 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
         # Get the picture for the grid tiles here
         if(self.mode == "normal"):
             # Copy found files over to the target destination folder
-            self.copyImageFiles(self.cameraImagePath, "png")
+            self.copyImageFiles(self.cameraImagePath)
             self._logger.info( "Copied Image to: %s", self.getBasePath() )
             # Get new element and continue tacking pictures if qeue not empty
             elem = self.getNewQeueElem()
@@ -251,25 +260,134 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
             self.our_pic_width,self.our_pic_height = self._get_image_size(self.cameraImagePath)
             self._logger.info("The found image resolution was: %dx%d",self.our_pic_width,self.our_pic_width)
             self.mode = "normal" # Return to normal mode after finishing
-        # else:
-        #     return self._settings.get_int(["picture_width"]),
-        #     self._settings.get_int(["picture_height"])
 
     def getNewQeueElem(self):
         if(self.qeue):
-            self.gridIndex += 1 #Increment Tile after each deque
             return self.qeue.popleft()
         else:
-            self.currentLayer += 1 #Increment layer when qeue was empty
-            self.gridIndex = 0 #Reset Grid Index
+            #Start stitching images when qeue is empty
+            self.mergeImages()
+            self.writeImage("png") #Write files when ready!
+            self.currentLayer += 1 #Finally Increment layer when qeue was empty
+            self.ImageArray = [] #Clear ImageArray for next round
             return(None)
 
-    def copyImageFiles(self, srcpath, suffix):
+    def copyImageFiles(self, srcpath):
         self._logger.info( "Copy Image from: %s", srcpath )
-        shutil.copyfile(srcpath, self.getProperTargetPathName(suffix))
+        self.ImageArray.append(cv2.imread(srcpath))
+
+    def mergeImages(self):
+        # Update tile rows before we start stitching
+        tileRows = self.GridInfoList[self.currentLayer][6]
+        tempImage1 = None
+        tempImage2 = None
+        self.MergedImage = None
+        completedTwoRuns = False # Is true when there's two rows full
+        # Stitch start from left to right
+        if(tileRows % 2 is 0):
+            # Now stitch the other images
+            i = 0
+            rowcounter = 1
+            colLength = len(self.ImageArray) / tileRows
+            direction = "LeftToRight"
+            while(i < len(self.ImageArray)):
+                if(colLength is rowcounter):
+                    rowcounter = 1
+                    if(direction is "LeftToRight"):
+                        direction = "RightToLeft"
+                        i += 1
+                    elif(direction is "RightToLeft"):
+                        direction = "LeftToRight"
+                        completedTwoRuns = True
+                        i += 1
+                    # Stich the ready made rows vertically now
+                    if(completedTwoRuns is True and self.MergedImage is None):
+                        if(direction is "RightToLeft"):
+                            self.MergedImage = self.stitchImages(tempImage2,tempImage1,"vertical")
+                            tempImage2 = None
+                        if(direction is "LeftToRight"):
+                            self.MergedImage = self.stitchImages(tempImage1,tempImage2,"vertical")
+                            tempImage1 = None
+                    elif(completedTwoRuns is True and self.MergedImage is not None):
+                        if(direction is "RightToLeft"):
+                            self.MergedImage = self.stitchImages(self.MergedImage,tempImage1,"vertical")
+                            tempImage2 = None
+                        if(direction is "LeftToRight"):
+                            self.MergedImage = self.stitchImages(self.MergedImage,tempImage2,"vertical")
+                            tempImage1 = None
+
+                if(i < len(self.ImageArray)):
+                    if(direction is "LeftToRight" and tempImage1 is not None):
+                        tempImage1 = self.stitchImages(tempImage1,self.ImageArray[i+1],"horizontal")
+                    if(direction is "LeftToRight" and tempImage1 is None):
+                        tempImage1 = self.stitchImages(self.ImageArray[i],self.ImageArray[i+1],"horizontal")
+                    if(direction is "RightToLeft" and tempImage2 is not None):
+                        tempImage2 = self.stitchImages(self.ImageArray[i+1],tempImage2,"horizontal")
+                    if(direction is "RightToLeft" and tempImage2 is None):
+                        tempImage2 = self.stitchImages(self.ImageArray[i+1],self.ImageArray[i],"horizontal")
+
+                    i += 1
+                    rowcounter += 1
+
+        # Stitch start from right to left
+        if(tileRows % 2 is 1):
+            # Now stitch the other images
+            i = 0
+            rowcounter = 1
+            colLength = len(self.ImageArray) / tileRows
+            direction = "RightToLeft"
+            while(i < len(self.ImageArray)):
+                if(colLength is rowcounter):
+                    rowcounter = 1
+                    if(direction is "RightToLeft"):
+                        direction = "LeftToRight"
+                        i += 1
+                    elif(direction is "LeftToRight"):
+                        direction = "RightToLeft"
+                        completedTwoRuns = True
+                        i += 1
+                    # Stich the ready made rows vertically now
+                    if(completedTwoRuns is True and self.MergedImage is None):
+                        if(direction is "RightToLeft"):
+                            self.MergedImage = self.stitchImages(tempImage2,tempImage1,"vertical")
+                            tempImage2 = None
+                        if(direction is "LeftToRight"):
+                            self.MergedImage = self.stitchImages(tempImage1,tempImage2,"vertical")
+                            tempImage1 = None
+                    elif(completedTwoRuns is True and self.MergedImage is not None):
+                        if(direction is "RightToLeft"):
+                            self.MergedImage = self.stitchImages(self.MergedImage,tempImage1,"vertical")
+                            tempImage2 = None
+                        if(direction is "LeftToRight"):
+                            self.MergedImage = self.stitchImages(self.MergedImage,tempImage2,"vertical")
+                            tempImage1 = None
+
+                if(i < len(self.ImageArray)):
+                    if(direction is "LeftToRight" and tempImage1 is not None):
+                        tempImage1 = self.stitchImages(tempImage1,self.ImageArray[i+1],"horizontal")
+                    if(direction is "LeftToRight" and tempImage1 is None):
+                        tempImage1 = self.stitchImages(self.ImageArray[i],self.ImageArray[i+1],"horizontal")
+                    if(direction is "RightToLeft" and tempImage2 is not None):
+                        tempImage2 = self.stitchImages(self.ImageArray[i+1],tempImage2,"horizontal")
+                    if(direction is "RightToLeft" and tempImage2 is None):
+                        tempImage2 = self.stitchImages(self.ImageArray[i+1],self.ImageArray[i],"horizontal")
+
+                    i += 1
+                    rowcounter += 1
+
+    def stitchImages(self,IncomingImage1,IncomingImage2,mode):
+        # Stitch images into rows
+        if(mode is "horizontal"):
+            return np.concatenate((IncomingImage1, IncomingImage2), axis=1)
+        # Stitch top and bottom row image together
+        if(mode is "vertical"):
+            return np.concatenate((IncomingImage1, IncomingImage2), axis=0)
+
+    def writeImage(self, suffix):
+        cv2.imwrite(self.getProperTargetPathName(suffix), self.MergedImage)
 
     def getProperTargetPathName(self,filesuffix):
-        return os.path.join(self.currentPrintJobDir, 'Layer_{}'.format(self.currentLayer) + '_Tile_{}'.format(self.gridIndex)) + '.' + filesuffix
+        return os.path.join(self.currentPrintJobDir, 'Layer_{}'.format(self.currentLayer) + '.' + filesuffix)
 
     def getBasePath(self):
         return os.path.join(self._settings.get(["target_folder"]), 'Printjob_{}'.format(self.getTimeStamp()))
@@ -344,6 +462,23 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
             else:
                 return
             return width, height
+
+    def resetValues(self):
+        self._currentZ = None
+        self.GCoordsList = []
+        self.CameraGridCoordsList = []
+        self.GridInfoList = []
+        self.currentLayer = 0
+        self.cameraImagePath = None
+        self.qeue = None
+        self.CamPixelX = None
+        self.CamPixelY = None
+        self.our_pic_width = None
+        self.our_pic_height = None
+        self.currentPrintJobDir = None
+        self.mode = "normal"
+        self.ImageArray = []
+        self.MergedImage = None
 
     def _updateUI(self, event, parameter):
         data = dict(
