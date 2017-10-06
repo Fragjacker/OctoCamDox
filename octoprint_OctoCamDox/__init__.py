@@ -40,9 +40,11 @@ import numpy as np
 import time
 import datetime
 
+from copy import deepcopy
 from collections import deque
 from .GCode_processor import CameraGCodeExtraction as GCodex
 from .GCode_processor import CustomJSONEncoder as CoordJSONify
+from .GCode_processor import Coordinate
 from .CameraCoordinateGetter import CameraGridMaker
 
 
@@ -226,6 +228,7 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
             # switch to pimary extruder, since the head camera is relative to this extruder and the offset to PNP nozzle might not be known (firmware offset)
             self._printer.commands("T0")
             # Create the qeue for the printer camera coordinates
+            self.invertYCoordinates() #Invert the Y coordinates for the printer
             self.qeue = deque(self.CameraGridCoordsList[self.currentLayer])
             elem = self.getNewQeueElem()
             self.get_camera_image(elem.x, elem.y, self.get_camera_image_callback, True)
@@ -284,7 +287,7 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
         self.MergedImage = None
         completedTwoRuns = False # Is true when there's two rows full
         # Stitch start from left to right
-        if(tileRows % 2 is 0):
+        if(self.checkForProperStitchCase(tileRows) is "LeftToRight"):
             # Now stitch the other images
             i = 0
             rowcounter = 1
@@ -330,7 +333,7 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
                     rowcounter += 1
 
         # Stitch start from right to left
-        if(tileRows % 2 is 1):
+        if(self.checkForProperStitchCase(tileRows) is "RightToLeft"):
             # Now stitch the other images
             i = 0
             rowcounter = 1
@@ -386,6 +389,15 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
     def writeImage(self, suffix):
         cv2.imwrite(self.getProperTargetPathName(suffix), self.MergedImage)
 
+    """Decides the proper case for the Stitching process."""
+    def checkForProperStitchCase(self,tileRows):
+        check1 = (tileRows / 2) % 2
+        check2 = (tileRows / 3) % 3
+        if(check1 or check2 is 1):
+            return "LeftToRight"
+        if(check1 or check2 is 0):
+            return "RightToLeft"
+
     def getProperTargetPathName(self,filesuffix):
         return os.path.join(self.currentPrintJobDir, 'Layer_{}'.format(self.currentLayer) + '.' + filesuffix)
 
@@ -396,6 +408,17 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
         ts = time.time()
         timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d__%H'+'h'+'_%M'+'m'+'_%S'+'s')
         return timestamp
+
+    """Invert the Y coordinates for the printer."""
+    def invertYCoordinates(self):
+        inputlist = self.CameraGridCoordsList[self.currentLayer]
+        tempList = []
+        index = 0
+        while(index < len(inputlist)):
+            newCoord = Coordinate(inputlist[index].x,inputlist[(len(inputlist)-1)-index].y)
+            tempList.append(newCoord)
+            index += 1
+        self.CameraGridCoordsList[self.currentLayer] = deepcopy(tempList)
 
     def _openGCodeFiles(self, inputName):
         gcode = open( inputName, 'r' )
