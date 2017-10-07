@@ -12,16 +12,18 @@ from copy import deepcopy
 #===============================================================================
 class CameraGridMaker:
 
-    #Stores the incoming List of coordinates
+    # Stores the incoming List of coordinates
     CordList = []
 
-    #Stores the coordinates as tuples of x and y. Implementation in class Coordinate
+    # Stores the coordinates as tuples of x and y.
+    # Implementation in class Coordinate
     workList = []
 
-    #Stores the List of found centers for the Camera Run
+    # Stores the List of found centers for the Camera Run
     CameraCoords = []
 
-    #Stores the maximum Pixel size the camera provies. Its in Pixel x Pixel Format
+    # Stores the maximum Pixel size the camera provies.
+    # Its in PixelxPixel Format
     CamPixelX = None
     CamPixelY = None
 
@@ -97,9 +99,10 @@ class CameraGridMaker:
         self.makeRowPointSymmetrical()
         return symmetryList
 
-    #===============================================================================
+    #===========================================================================
     # Main Camera Grid computation Algortihm
-    #===============================================================================
+    #===========================================================================
+    # Refactored function
     def _setUpCoordinates(self, CameraCoords, newCoord, inputList, seeUp):
         for eachItem in CameraCoords:
             newCoord = Coordinate(eachItem.x, seeUp)
@@ -338,7 +341,9 @@ class CameraGridMaker:
         elemPerRow = len( inputList ) / self.getRows()
         return elemPerRow
 
-#------------------------------------------------------------------------------
+#===========================================================================
+# Get and Set functions
+#===========================================================================
 
     def getRows(self):
         return self.rows

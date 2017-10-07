@@ -89,10 +89,23 @@ class CameraGCodeExtraction:
                     zValueList.append(float(z_values.group(1)))
         return zValueList
 
-    """Do some RegEx to find the entries of value for us.
-    :param Data: Contains the textdata for processing
+    """This is the switch function which decides which kind of method should be
+    used for GCode extraction.
+    :param Data: Contains the textdata from the .gcode file for processing
     """
     def findAllGCodesInLayer(self, Data):
+        # Check if the string from the setting was empty
+        if not self.desiredExtruder:
+            self.findAllSimpleGCodesInLayer(Data)
+        else:
+            self.findAllTargetExtruderGCodesInLayer(Data)
+
+    """Does not look after a special extruder and just takes all GCodes
+    from the current layer. This is for compatibility for ordinary printers
+    that only have one main extruder.
+    :param Data: Contains the textdata from the .gcode file for processing
+    """
+    def findAllTargetExtruderGCodesInLayer(self, Data):
         for line in Data:
             self.extruder_state = re.match('T\d', line)
             z_values = re.match('G1 Z(\d+.\d+)', line)
@@ -116,6 +129,35 @@ class CameraGCodeExtraction:
         if(len(self.shortCoordList) >= 2):
             self.masterCoordList.append(self.shortCoordList)
 
+        # Reset the list back to empty state after finishing task
+        self.shortCoordList = []
+
+    """Does look after a special extruder and use the found GCodes
+    from the current layer. This is for compatibility for printers
+    using modified Printers having multiple extruders.
+    :param Data: Contains the textdata from the .gcode file for processing
+    """
+    def findAllSimpleGCodesInLayer(self, Data):
+        for line in Data:
+            z_values = re.match('G1 Z(\d+.\d+)', line)
+            #Get the last Z Position value of the T0 exrruder
+            if self.validZValues(z_values):
+                self.currentExtruderZPos = float(z_values.group(1))
+
+            #Get the X and Y values of the extruder at the specified layer
+            if self.extruder_working(self.desiredExtruder):
+                xy_values = re.match('G1 X(\d+.\d+) Y(\d+.\d+) E\d+.\d+', line)
+                if xy_values != None:
+                    newCoord = Coordinate(
+                        float(xy_values.group(1)),
+                        float(xy_values.group(2)))
+                    self.shortCoordList.append(newCoord)
+
+        # Make sure the list has enough entries
+        if(len(self.shortCoordList) >= 2):
+            self.masterCoordList.append(self.shortCoordList)
+
+        # Reset the list back to empty state after finishing task
         self.shortCoordList = []
 
 #===============================================================================
@@ -137,37 +179,3 @@ class CameraGCodeExtraction:
 
     def extruder_working(self, inputExtruder):
         return self.currentExtruderZPos == self.Z_layer and self.current_extruder == inputExtruder
-
-#===============================================================================
-# writeFiles(CoordList, desiredExtruder + "_ExtruderPositions.txt")
-# writeFiles(shortCoordList, desiredExtruder + "_positions.txt")
-#===============================================================================
-
-#===============================================================================
-# Old legacy Code
-#===============================================================================
-#===============================================================================
-# #Do some RegEx to find the entries of value for us.
-# for line in Data:
-#     extruder_state = re.match( 'T\d', line )
-#     z_values = re.match( 'G1 Z(\d+.\d+)', line )
-#
-#     #Get the currently selected extruder from File (T1 or T0)
-#     if extruder_state != None:
-#         current_extruder = extruder_state.group( 0 )
-#
-#     #Get the last Z Position value of the T1 exrruder
-#     if validZValues( z_values ) and current_extruder == desiredExtruder:
-#         currentExtruderZPos = float( z_values.group( 1 ) )
-#
-#     #Get the X and Y values of the extruder at the specified layer
-#     if extruder_working(desiredExtruder):
-#         xy_values = re.match( 'G1 X(\d+.\d+) Y(\d+.\d+)', line )
-#         if xy_values != None:
-#             CoordList.append(desiredExtruder
-#             + ' Extruder is at X: {}'.format( xy_values.group(1) )
-#             + ', Y: {}'.format( xy_values.group(2) )
-#             + ', in Z-Layer: {}'.format( currentExtruderZPos ) + '\n')
-#             newCoord = Coordinate(xy_values.group(1),xy_values.group(2))
-#             shortCoordList.append(newCoord)
-#===============================================================================

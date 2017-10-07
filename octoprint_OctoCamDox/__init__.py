@@ -114,7 +114,9 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
             self.get_camera_resolution = helpers["get_head_camera_pxPerMM"]
 
     def get_settings_defaults(self):
-        return dict(target_folder = "C:\Desktop",
+        return dict(target_folder = "",
+                    layer_height = 0.25,
+                    target_extruder = "",
                     picture_width = 800,
                     picture_height = 800)
 
@@ -152,8 +154,11 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
         if event == "FileSelected":
             #Reset values just in case another file was loaded before
             self.resetValues()
+            # Get the necessary values from the settings tab
+            layerHeight = self._settings.get_int(["layer_height"])
+            targetExtruder = self._settings.get(["target_extruder"])
             #Initilize the Cameraextractor Class
-            newCamExtractor = GCodex(0.25,'T0')
+            newCamExtractor = GCodex(layerHeight,targetExtruder)
             #Retrieve the basefolder for the GCode uploads
             dir_name = self._settings.global_get_basefolder("uploads")
             base_filename = payload.get("path")
@@ -243,9 +248,7 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
     def get_camera_image_callback(self, path):
     	print "Returned image path was: "
     	print path
-        # self.cameraImagePath = path
-        # TODO: Remove below hardcoded image path
-        self.cameraImagePath = os.path.join(path, "Sample_880x880.png")
+        self.cameraImagePath = path
         print("Entered image processing callback")
 
         # Get the picture for the grid tiles here

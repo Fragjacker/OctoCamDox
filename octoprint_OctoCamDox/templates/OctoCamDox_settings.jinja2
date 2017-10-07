@@ -18,9 +18,17 @@
             <input type="text" class="input-block-level" data-bind="value: settings.plugins.OctoCamDox.picture_height" id="settings-picture-height">
         </div>
         <div class="layer-buttons btn-group-toolbar row-fluid">
-            <button type="button" class="btn btn-primary btn-medium span6" data-bind = "click: getImageRes">
+            <button type="button" class="btn btn-primary btn-medium span3" data-bind = "click: getImageRes">
                 <span>{{ _('Get picture resolution') }}</span>
             </button>
+        </div>
+        <label class="control-label" for="settings-layer-height">{{ _('Layer height: ') }}</label>
+        <div class="controls">
+            <input type="text" class="input-block-level" data-bind="value: settings.plugins.OctoCamDox.layer_height" id="settings-layer-height">
+        </div>
+        <label class="control-label" for="settings-target-extruder">{{ _('Target extruder: ') }}</label>
+        <div class="controls">
+            <input type="text" class="input-block-level" data-bind="value: settings.plugins.OctoCamDox.target_extruder" id="settings-target-extruder">
         </div>
     </div>
 </form>
