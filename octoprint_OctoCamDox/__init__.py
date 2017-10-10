@@ -444,18 +444,16 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
         self._printer.commands("G1 Z" + str(camera_offset[2]) + " F" + str(self.FEEDRATE)) # lower printhead
 
     """This function sets up the necessary values for the camera lookup grid steps,
-    it tries to get legit values first and elsely uses hardcoded default values"""
+    by taking a sample picture at a certain point."""
     def _setNewGridResolution(self):
-        # use the helper to retrieve the Pixel per Millimeter ratio
-        PixelPerMillimeter = self.get_camera_resolution("HEAD")
         # Get an image to determine the camera resolution
         self.get_camera_image(0, 0, self.get_camera_image_callback, True)
 
     def _computeLookupGridValues(self):
-        PixelPerMillimeter = self.get_camera_resolution("HEAD")
+        PixelPerMillimeterX, PixelPerMillimeterY = self.get_camera_resolution("HEAD")
         # Divide the resolution by the PixelPerMillimeter ratio
-        self.CamPixelX = self._settings.get_int(["picture_width"]) / PixelPerMillimeter
-        self.CamPixelY = self._settings.get_int(["picture_height"]) / PixelPerMillimeter
+        self.CamPixelX = self._settings.get_int(["picture_width"]) / PixelPerMillimeterX
+        self.CamPixelY = self._settings.get_int(["picture_height"]) / PixelPerMillimeterY
 
     """This function retrieves the resolution of the .png, .gif or .jpeg image file passed into it.
     This function was copypasted from https://stackoverflow.com/questions/8032642/how-to-obtain-image-size-using-standard-python-class-without-using-external-lib
