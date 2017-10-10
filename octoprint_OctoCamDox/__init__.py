@@ -450,10 +450,10 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
         self.get_camera_image(0, 0, self.get_camera_image_callback, True)
 
     def _computeLookupGridValues(self):
-        PixelPerMillimeterX, PixelPerMillimeterY = self.get_camera_resolution("HEAD")
+        PixelPerMillimeter = self.get_camera_resolution("HEAD")
         # Divide the resolution by the PixelPerMillimeter ratio
-        self.CamPixelX = self._settings.get_int(["picture_width"]) / PixelPerMillimeterX
-        self.CamPixelY = self._settings.get_int(["picture_height"]) / PixelPerMillimeterY
+        self.CamPixelX = self._settings.get_int(["picture_width"]) / PixelPerMillimeter["x"]
+        self.CamPixelY = self._settings.get_int(["picture_height"]) / PixelPerMillimeter["y"]
 
     """This function retrieves the resolution of the .png, .gif or .jpeg image file passed into it.
     This function was copypasted from https://stackoverflow.com/questions/8032642/how-to-obtain-image-size-using-standard-python-class-without-using-external-lib
