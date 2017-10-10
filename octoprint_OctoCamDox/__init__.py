@@ -159,10 +159,10 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
             targetExtruder = self._settings.get(["target_extruder"])
             #Initilize the Cameraextractor Class
             newCamExtractor = GCodex(layerHeight,targetExtruder)
-            #Retrieve the basefolder for the GCode uploads
+
+            #Retrieve the dirs for the GCode uploads using the filemanager
             try:
                 uploadsPath = self._file_manager.path_on_disk(payload.get("origin"), payload.get("path"))
-                self._logger.info("INFO - Loading from local storage was succesfull.")
             except NoSuchstorage:
                 self._logger.info("ERROR - File was on a SD card, reading was not possible!")
             except io.UnsupportedOperation:
