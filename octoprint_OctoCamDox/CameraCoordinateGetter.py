@@ -158,7 +158,7 @@ class CameraGridMaker:
         currentYPos = self.centerY
         self.switcher = 0
         while(True):
-            switcher = 0
+            self.switcher = 0
             #Rows that have the switcher module result
             #of 0 fill from left to right
             if(self.switcher % 2 == 0):
@@ -172,7 +172,7 @@ class CameraGridMaker:
 
                         reverserList.reverse()
                         reverserList.extend(cacheList)
-                        cacheList = reverserList
+                        cacheList = deepcopy(reverserList)
                         currentYPos = seeUp
                         self.switcher += 1
                         self.incrementRow()
@@ -182,7 +182,7 @@ class CameraGridMaker:
 
                         reverserList.reverse()
                         reverserList.extend(cacheList)
-                        cacheList = reverserList
+                        cacheList = deepcopy(reverserList)
                         currentYPos = seeUp
                         self.switcher += 1
                         self.incrementRow()
@@ -201,7 +201,7 @@ class CameraGridMaker:
                             self.CameraCoords, newCoord, localList, seeUp)
 
                         localList.extend(cacheList)
-                        cacheList = localList
+                        cacheList = deepcopy(localList)
                         currentYPos = seeUp
                         self.switcher -= 1
                         self.incrementRow()
@@ -210,7 +210,7 @@ class CameraGridMaker:
                             self.CameraCoords, newCoord, localList, seeUp)
 
                         localList.extend(cacheList)
-                        cacheList = localList
+                        cacheList = deepcopy(localList)
                         currentYPos = seeUp
                         self.switcher -= 1
                         self.incrementRow()
