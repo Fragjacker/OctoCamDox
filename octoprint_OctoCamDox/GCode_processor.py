@@ -21,12 +21,16 @@ class Coordinate:
     def __init__(self, x, y):
         self.x = x
         self.y = y
+        self.mode = None
+
+    def set_mode(self,mode):
+        self.mode = mode
 
 #Offers serialization of the Coordinate custom Object
 class CustomJSONEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, Coordinate):
-            return [o.x, o.y]
+            return [o.x, o.y, o.mode]
         return CustomJSONEncoder(self, o)
 
 #===============================================================================

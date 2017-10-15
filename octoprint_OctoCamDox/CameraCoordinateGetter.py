@@ -12,39 +12,35 @@ from copy import deepcopy
 #===============================================================================
 class CameraGridMaker:
 
-    # Stores the incoming List of coordinates
-    CordList = []
-
-    # Stores the coordinates as tuples of x and y.
-    # Implementation in class Coordinate
-    workList = []
-
-    # Stores the List of found centers for the Camera Run
-    CameraCoords = []
-
-    # Stores the maximum Pixel size the camera provies.
-    # Its in PixelxPixel Format
-    CamPixelX = None
-    CamPixelY = None
-
-    #Below values store the extreme values found during the processing process
-    minX = None
-    minY = None
-    maxX = None
-    maxY = None
-    centerX = None
-    centerY = None
-
-    # Stores the number of total tile rows
-    rows = None
-    # Stores the mode of the tilemaker algorithm
-    switcher = None
-
     def __init__(self,incomingCoordList,layer,CamResX,CamResY):
+        # Stores the maximum Pixel size the camera provies.
+        # Its in PixelxPixel Format
         self.CamPixelX = CamResX
         self.CamPixelY = CamResY
+
+        # Stores the number of total tile rows
         self.rows = 0
+
+        # Stores the incoming List of coordinates
         self.CordList = incomingCoordList[layer]
+
+        # Stores the coordinates as tuples of x and y.
+        # Implementation in class Coordinate
+        self.workList = []
+
+        # Stores the List of found centers for the Camera Run
+        self.CameraCoords = []
+
+        #Below values store the extreme values found during the processing process
+        self.minX = None
+        self.minY = None
+        self.maxX = None
+        self.maxY = None
+        self.centerX = None
+        self.centerY = None
+
+        # Stores the mode of the tilemaker algorithm
+        self.switcher = None
 
     #Creates the work list we're using for our computations
     #and sets up the Bounding Box values
@@ -340,6 +336,29 @@ class CameraGridMaker:
     def getElementsPerRow( self, inputList ):
         elemPerRow = len( inputList ) / self.getRows()
         return elemPerRow
+
+    """This will add additional coordinates to the camera coords list
+    which will not be used for taking pictures but only move the head camera.
+    this feature will help taking better pictures on printers with high
+    backlash values."""
+    def addSlipFlaps(self):
+        step = self.getElementsPerRow(self.CameraCoords)
+        index = 0
+        counter = 0
+        localList = deepcopy(self.CameraCoords)
+        while (index < len(self.CameraCoords)):
+            if(self.switcher is 0):
+                newCoord = Coordinate(self.CameraCoords[index].x + self.getCampixelX(),self.CameraCoords[index].y)
+                newCoord.set_mode("walk")
+                self.switcher += 1
+            elif(self.switcher is 1):
+                newCoord = Coordinate(self.CameraCoords[index].x - self.getCampixelX(),self.CameraCoords[index].y)
+                newCoord.set_mode("walk")
+                self.switcher -= 1
+            localList.insert(index+counter, newCoord)
+            counter += 1
+            index += step
+        self.CameraCoords = deepcopy(localList)
 
 #===========================================================================
 # Get and Set functions

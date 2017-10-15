@@ -42,10 +42,14 @@ import datetime
 
 from copy import deepcopy
 from collections import deque
+
 from .GCode_processor import CameraGCodeExtraction as GCodex
 from .GCode_processor import CustomJSONEncoder as CoordJSONify
 from .GCode_processor import Coordinate
-from .CameraCoordinateGetter import CameraGridMaker
+from .CameraCoordinateGetter import CameraGridMaker as CGridmaker
+from .CameraCoordsWithOptions import CameraGridMakerWithOptions as CGridWithOpts
+from .image_merger import ImageMerger as imerge
+from .image_mergerWithOptions import ImageMergerWithOptions as imergeOpts
 
 
 __plugin_name__ = "OctoCamDox"
@@ -107,10 +111,8 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
     # Add helpers from the auxilary OctoPNP plug-in to grab images and camera resolution
 	helpers = self._pluginManager.get_helpers("OctoPNP", "get_head_camera_image", "get_head_camera_pxPerMM")
         if helpers and "get_head_camera_image" in helpers:
-            self._logger.info("FOUND HELPER FOR TAKING IMAGE!!!")
             self.get_camera_image = helpers["get_head_camera_image"]
         if helpers and "get_head_camera_pxPerMM" in helpers:
-            self._logger.info("FOUND HELPER FOR CAMERARESOLUTION!!!")
             self.get_camera_resolution = helpers["get_head_camera_pxPerMM"]
 
     def get_settings_defaults(self):
@@ -118,7 +120,10 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
                     layer_height = 0.25,
                     target_extruder = "",
                     picture_width = 800,
-                    picture_height = 800)
+                    picture_height = 800,
+                    forceRTL = False,
+                    forceLTR = False,
+                    addSlipFlaps = False)
 
     def get_template_configs(self):
         return [
@@ -197,13 +202,18 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
         infoList = []
         count = 0
         while count < len(inputList):
-            #Creates a new CameraGridMaker Object with int Numbers for the Cam resolution
-            newGridMaker = CameraGridMaker(inputList,count,CamResX,CamResY)
+            #Creates a new CGridmaker Object with int Numbers for the Cam resolution
+            if(self._settings.get(["forceRTL"]) or self._settings.get(["forceLTR"])):
+                newGridMaker = CGridWithOpts(self._settings,inputList,count,CamResX,CamResY)
+            else:
+                newGridMaker = CGridmaker(inputList,count,CamResX,CamResY)
 
             #Execute all necessary operations to create the actual CameraGrid
             newGridMaker.getCoordinates()
             newGridMaker.createCameraLookUpGrid()
             newGridMaker.optimizeGrid()
+            if(self._settings.get(["addSlipFlaps"])):
+                newGridMaker.addSlipFlaps()
 
             infoList.append([newGridMaker.getMaxX(),
                     newGridMaker.getMinX(),
@@ -219,7 +229,6 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
         self.CameraGridCoordsList = templist
         self.GridInfoList = infoList
         # Retrieve the info about how many tile rows exist for image stitching
-
 
     """
     Use the gcode hook to start the camera grid documentation processes.
@@ -259,7 +268,6 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
         if(self.mode == "normal"):
             # Copy found files over to the target destination folder
             self.copyImageFiles(self.cameraImagePath)
-            self._logger.info( "Copied Image to: %s", self.getBasePath() )
             # Get new element and continue tacking pictures if qeue not empty
             elem = self.getNewQeueElem()
             if(elem):
@@ -276,134 +284,31 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
             return self.qeue.popleft()
         else:
             #Start stitching images when qeue is empty
-            self.mergeImages()
-            self.writeImage("png") #Write files when ready!
+            self.handleImages()
             self.currentLayer += 1 #Finally Increment layer when qeue was empty
-            self.ImageArray = [] #Clear ImageArray for next round
             return(None)
 
+    """Copies each image captured by the printer camera
+    :param srcpath: Contains the absolute path to the target file"""
     def copyImageFiles(self, srcpath):
-        self._logger.info( "Copy Image from: %s", srcpath )
+        self._logger.info( "Fetch Image from: %s", srcpath )
         self.ImageArray.append(cv2.imread(srcpath))
 
-    def mergeImages(self):
-        # Update tile rows before we start stitching
-        tileRows = self.GridInfoList[self.currentLayer][6]
-        tempImage1 = None
-        tempImage2 = None
-        self.MergedImage = None
-        completedTwoRuns = False # Is true when there's two rows full
-        # Stitch start from left to right
-        if(self.checkForProperStitchCase(tileRows) is "LeftToRight"):
-            # Now stitch the other images
-            i = 0
-            rowcounter = 1
-            colLength = len(self.ImageArray) / tileRows
-            direction = "LeftToRight"
-            while(i < len(self.ImageArray)):
-                if(colLength is rowcounter):
-                    rowcounter = 1
-                    if(direction is "LeftToRight"):
-                        direction = "RightToLeft"
-                        i += 1
-                    elif(direction is "RightToLeft"):
-                        direction = "LeftToRight"
-                        completedTwoRuns = True
-                        i += 1
-                    # Stich the ready made rows vertically now
-                    if(completedTwoRuns is True and self.MergedImage is None):
-                        if(direction is "RightToLeft"):
-                            self.MergedImage = self.stitchImages(tempImage2,tempImage1,"vertical")
-                            tempImage2 = None
-                        if(direction is "LeftToRight"):
-                            self.MergedImage = self.stitchImages(tempImage1,tempImage2,"vertical")
-                            tempImage1 = None
-                    elif(completedTwoRuns is True and self.MergedImage is not None):
-                        if(direction is "RightToLeft"):
-                            self.MergedImage = self.stitchImages(self.MergedImage,tempImage1,"vertical")
-                            tempImage2 = None
-                        if(direction is "LeftToRight"):
-                            self.MergedImage = self.stitchImages(self.MergedImage,tempImage2,"vertical")
-                            tempImage1 = None
-
-                if(i < len(self.ImageArray)):
-                    if(direction is "LeftToRight" and tempImage1 is not None):
-                        tempImage1 = self.stitchImages(tempImage1,self.ImageArray[i+1],"horizontal")
-                    if(direction is "LeftToRight" and tempImage1 is None):
-                        tempImage1 = self.stitchImages(self.ImageArray[i],self.ImageArray[i+1],"horizontal")
-                    if(direction is "RightToLeft" and tempImage2 is not None):
-                        tempImage2 = self.stitchImages(self.ImageArray[i+1],tempImage2,"horizontal")
-                    if(direction is "RightToLeft" and tempImage2 is None):
-                        tempImage2 = self.stitchImages(self.ImageArray[i+1],self.ImageArray[i],"horizontal")
-
-                    i += 1
-                    rowcounter += 1
-
-        # Stitch start from right to left
-        if(self.checkForProperStitchCase(tileRows) is "RightToLeft"):
-            # Now stitch the other images
-            i = 0
-            rowcounter = 1
-            colLength = len(self.ImageArray) / tileRows
-            direction = "RightToLeft"
-            while(i < len(self.ImageArray)):
-                if(colLength is rowcounter):
-                    rowcounter = 1
-                    if(direction is "RightToLeft"):
-                        direction = "LeftToRight"
-                        i += 1
-                    elif(direction is "LeftToRight"):
-                        direction = "RightToLeft"
-                        completedTwoRuns = True
-                        i += 1
-                    # Stich the ready made rows vertically now
-                    if(completedTwoRuns is True and self.MergedImage is None):
-                        if(direction is "RightToLeft"):
-                            self.MergedImage = self.stitchImages(tempImage2,tempImage1,"vertical")
-                            tempImage2 = None
-                        if(direction is "LeftToRight"):
-                            self.MergedImage = self.stitchImages(tempImage1,tempImage2,"vertical")
-                            tempImage1 = None
-                    elif(completedTwoRuns is True and self.MergedImage is not None):
-                        if(direction is "RightToLeft"):
-                            self.MergedImage = self.stitchImages(self.MergedImage,tempImage1,"vertical")
-                            tempImage2 = None
-                        if(direction is "LeftToRight"):
-                            self.MergedImage = self.stitchImages(self.MergedImage,tempImage2,"vertical")
-                            tempImage1 = None
-
-                if(i < len(self.ImageArray)):
-                    if(direction is "LeftToRight" and tempImage1 is not None):
-                        tempImage1 = self.stitchImages(tempImage1,self.ImageArray[i+1],"horizontal")
-                    if(direction is "LeftToRight" and tempImage1 is None):
-                        tempImage1 = self.stitchImages(self.ImageArray[i],self.ImageArray[i+1],"horizontal")
-                    if(direction is "RightToLeft" and tempImage2 is not None):
-                        tempImage2 = self.stitchImages(self.ImageArray[i+1],tempImage2,"horizontal")
-                    if(direction is "RightToLeft" and tempImage2 is None):
-                        tempImage2 = self.stitchImages(self.ImageArray[i+1],self.ImageArray[i],"horizontal")
-
-                    i += 1
-                    rowcounter += 1
-
-    def stitchImages(self,IncomingImage1,IncomingImage2,mode):
-        # Stitch images into rows
-        if(mode is "horizontal"):
-            return np.concatenate((IncomingImage1, IncomingImage2), axis=1)
-        # Stitch top and bottom row image together
-        if(mode is "vertical"):
-            return np.concatenate((IncomingImage1, IncomingImage2), axis=0)
+    def handleImages(self):
+        if(not(self._settings.get(["forceRTL"]) or self._settings.get(["forceLTR"]))):
+            ImageMerger = imerge(self.ImageArray,self.GridInfoList[self.currentLayer][6])
+            ImageMerger.mergeImages()
+        else:
+            ImageMerger = imergeOpts(self._settings,
+            self.ImageArray,self.GridInfoList[self.currentLayer][6])
+            ImageMerger.mergeImages()
+        # Hand over the results to the target dir and cleanup the Image array
+        self.MergedImage = ImageMerger.get_MergedImage()
+        self.writeImage("png") #Write files when ready!
+        self.ImageArray = [] #Clear ImageArray for next round
 
     def writeImage(self, suffix):
         cv2.imwrite(self.getProperTargetPathName(suffix), self.MergedImage)
-
-    """Decides the proper case for the Stitching process."""
-    def checkForProperStitchCase(self,tileRows):
-        check1 = (tileRows / 2) % 2
-        check2 = (tileRows / 3) % 3
-        if(check1 or check2 is 1):
-            return "LeftToRight"
-        if(check1 or check2 is 0):
-            return "RightToLeft"
 
     def getProperTargetPathName(self,filesuffix):
         return os.path.join(self.currentPrintJobDir, 'Layer_{}'.format(self.currentLayer) + '.' + filesuffix)
