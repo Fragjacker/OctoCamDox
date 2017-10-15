@@ -100,7 +100,7 @@ class CameraGridMakerWithOptions(CCGet.CameraGridMaker, object):
         #by making a point symmetrical Copy
         self.CameraCoords.extend(self.makePointSymmetry(cacheList))
 
-        if(self._settings.get(["forceLTR"])):
+        if(self._settings.get(["forceLTR"]) == 'on'):
             self.flipListVertical()
 
     #===========================================================================
@@ -152,9 +152,9 @@ class CameraGridMakerWithOptions(CCGet.CameraGridMaker, object):
             # Remove tiles on the X-Axis and then check if all is still covered
             localList = deepcopy( self.CameraCoords ) # Get a fresh copy of list
             # Initilize index based on mode
-            if(self._settings.get(["forceRTL"])):
+            if(self._settings.get(["forceRTL"]) == 'on'):
                 index = 0
-            elif(self._settings.get(["forceLTR"])):
+            elif(self._settings.get(["forceLTR"]) == 'on'):
                 index = elemPerRow-1
             # Mark the tiles for deletion now but preserve the array index
             while(index < len(localList)):
@@ -168,9 +168,9 @@ class CameraGridMakerWithOptions(CCGet.CameraGridMaker, object):
                 eachItem.x = eachItem.x + gridCenterX
                 eachItem.y = eachItem.y + gridCenterY
             # Once the grid was moved get new Extrema bounds
-            if(self._settings.get(["forceRTL"])):
+            if(self._settings.get(["forceRTL"]) == 'on'):
                 newMinX, newMaxX = self.getGridXExtrema( localList , "RightToLeft" , elemPerRow)
-            elif(self._settings.get(["forceLTR"])):
+            elif(self._settings.get(["forceLTR"]) == 'on'):
                 newMinX, newMaxX = self.getGridXExtrema( localList , "LeftToRight" , elemPerRow)
             # Check if the Grid is still covering everything
             if( self.minX >= newMinX and self.maxX <= newMaxX ):
@@ -203,10 +203,10 @@ class CameraGridMakerWithOptions(CCGet.CameraGridMaker, object):
         counter = 0
         localList = deepcopy(self.CameraCoords)
         while (index < len(self.CameraCoords)):
-            if(self._settings.get(["forceRTL"])):
+            if(self._settings.get(["forceRTL"]) == 'on'):
                 newCoord = Coordinate(self.CameraCoords[index].x + self.getCampixelX(),self.CameraCoords[index].y)
                 newCoord.set_mode("walk")
-            elif(self._settings.get(["forceLTR"])):
+            elif(self._settings.get(["forceLTR"]) == 'on'):
                 newCoord = Coordinate(self.CameraCoords[index].x - self.getCampixelX(),self.CameraCoords[index].y)
                 newCoord.set_mode("walk")
             localList.insert(index+counter, newCoord)

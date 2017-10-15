@@ -10,6 +10,38 @@ $(function() {
             self.settings = self.settings.settings;
         };
 
+        // Execute certain actions when the radio buttons are pressed
+        window.onload = function() {
+          document.getElementById("option-normal").onclick = function fun() {
+              self.resetOtherButtons("normalMode");
+            };
+          document.getElementById("option-force-LTR").onclick = function fun() {
+              self.resetOtherButtons("forceLTR");
+            };
+          document.getElementById("option-force-RTL").onclick = function fun() {
+              self.resetOtherButtons("forceRTL");
+            };
+          };
+
+        // Reset the options for the non selected radio buttons
+        self.resetOtherButtons = function(mode){
+          if(mode == "normalMode"){
+            self.settings.plugins.OctoCamDox.normalMode("on");
+            self.settings.plugins.OctoCamDox.forceLTR("off");
+            self.settings.plugins.OctoCamDox.forceRTL("off");
+          }
+          if(mode == "forceLTR"){
+            self.settings.plugins.OctoCamDox.normalMode("off");
+            self.settings.plugins.OctoCamDox.forceLTR("on");
+            self.settings.plugins.OctoCamDox.forceRTL("off");
+          }
+          if(mode == "forceRTL"){
+            self.settings.plugins.OctoCamDox.normalMode("off");
+            self.settings.plugins.OctoCamDox.forceLTR("off");
+            self.settings.plugins.OctoCamDox.forceRTL("on");
+          }
+        };
+
         self.getImageRes = function() {
             console.log("Updating Camera Resolution, make sure the printer is online!");
             $.ajax({

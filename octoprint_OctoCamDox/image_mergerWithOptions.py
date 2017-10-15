@@ -115,7 +115,7 @@ class ImageMergerWithOptions(imerge.ImageMerger, object):
 
     """Decides the proper case for the Stitching process."""
     def checkForProperStitchCase(self):
-        if(self._settings.get(["forceLTR"])):
+        if(self._settings.get(["forceLTR"]) == 'on'):
             return "LeftToRight"
-        if(self._settings.get(["forceRTL"])):
+        if(self._settings.get(["forceRTL"]) == 'on'):
             return "RightToLeft"

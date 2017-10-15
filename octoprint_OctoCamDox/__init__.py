@@ -121,8 +121,9 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
                     target_extruder = "",
                     picture_width = 800,
                     picture_height = 800,
-                    forceRTL = False,
-                    forceLTR = False,
+                    normalMode = 'on',
+                    forceRTL = "off",
+                    forceLTR = "off",
                     addSlipFlaps = False)
 
     def get_template_configs(self):
@@ -203,7 +204,7 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
         count = 0
         while count < len(inputList):
             #Creates a new CGridmaker Object with int Numbers for the Cam resolution
-            if(self._settings.get(["forceRTL"]) or self._settings.get(["forceLTR"])):
+            if(self._settings.get(["forceRTL"]) == 'on' or self._settings.get(["forceLTR"]) == 'on'):
                 newGridMaker = CGridWithOpts(self._settings,inputList,count,CamResX,CamResY)
             else:
                 newGridMaker = CGridmaker(inputList,count,CamResX,CamResY)

@@ -7,6 +7,7 @@
             <input type="text" class="input-block-level" data-bind="value: settings.plugins.OctoCamDox.target_folder" id="settings-target-folder">
         </div>
     </div>
+
     <h3>{{ _('Program constants') }}</h3>
     <div class="control-group">
         <label class="control-label" for="settings-width">{{ _('Picture width: ') }}</label>
@@ -32,6 +33,26 @@
         <label class="control-label" for="settings-target-extruder">{{ _('Target extruder: ') }}</label>
         <div class="controls">
             <input type="text" class="input-block-level" data-bind="value: settings.plugins.OctoCamDox.target_extruder" id="settings-target-extruder">
+        </div>
+    </div>
+
+    <h3>{{ _('Camera Grid Options') }}</h3>
+    <div class="control-group">
+        <label class="control-label" for="grid-options-normal">{{ _('Use normal mode: ') }}</label>
+        <div class="controls">
+            <input type="radio" name="optionsforce" class="input-block-level" data-bind="checked: settings.plugins.OctoCamDox.normalMode" onClick="resetOtherButtons" id="option-normal">
+        </div>
+        <label class="control-label" for="grid-options-forceLTR">{{ _('Force left to right: ') }}</label>
+        <div class="controls">
+            <input type="radio" name="optionsforce" class="input-block-level" data-bind="checked: settings.plugins.OctoCamDox.forceLTR" onClick="resetOtherButtons" id="option-force-LTR">
+        </div>
+        <label class="control-label" for="grid-options-forceRTL">{{ _('Force right to left: ') }}</label>
+        <div class="controls">
+            <input type="radio" name="optionsforce" class="input-block-level" data-bind="checked: settings.plugins.OctoCamDox.forceRTL" onClick="resetOtherButtons" id="option-force-RTL">
+        </div>
+        <label class="control-label" for="grid-options-add-flaps">{{ _('Add backlash flaps: ') }}</label>
+        <div class="controls">
+            <input type="checkbox" name="addFlaps" class="input-block-level" data-bind="checked: settings.plugins.OctoCamDox.addSlipFlaps" id="option-add-flaps">
         </div>
     </div>
 </form>
