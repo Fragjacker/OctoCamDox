@@ -120,6 +120,7 @@ function camGrid(width, height, infoList, currentSelectedLayer, GCodeCoordinates
 
 		function _drawCamGrid(inputLayer) {
 			for (var i = 0 ; i < _cameraCoordinates[inputLayer].length ; ++i){
+				// Don't draw coordinate boxes with the mode set to "walk"
 				if(_cameraCoordinates[inputLayer][i][2] != "walk"){
 					_drawGridBox(_cameraCoordinates[inputLayer][i][0], _cameraCoordinates[inputLayer][i][1]);
 				}

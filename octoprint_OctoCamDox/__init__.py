@@ -121,7 +121,7 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
                     target_extruder = "",
                     picture_width = 800,
                     picture_height = 800,
-                    normalMode = 'on',
+                    normalMode = "on",
                     forceRTL = "off",
                     forceLTR = "off",
                     addSlipFlaps = False)
@@ -230,7 +230,7 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
         self.CameraGridCoordsList = templist
         self.GridInfoList = infoList
         # Retrieve the info about how many tile rows exist for image stitching
-
+#------------------------------------------------------------------------------
     """
     Use the gcode hook to start the camera grid documentation processes.
     """
@@ -250,14 +250,15 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
             self.invertYCoordinates() #Invert the Y coordinates for the printer
             self.qeue = deque(self.CameraGridCoordsList[self.currentLayer])
             elem = self.getNewQeueElem()
-            self.get_camera_image(elem.x, elem.y, self.get_camera_image_callback, True)
+            # Decide if only movement is necessary or actual picture capturing
+            if(elem):
+                self._handleCameraActions(elem)
 
             return "G4 P1" # return dummy command
 
     	if "M945" in cmd:
     	    self.currentPrintJobDir = self.getBasePath()
             os.mkdir(self.currentPrintJobDir)
-
 
     def get_camera_image_callback(self, path):
     	print "Returned image path was: "
@@ -272,7 +273,7 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
             # Get new element and continue tacking pictures if qeue not empty
             elem = self.getNewQeueElem()
             if(elem):
-                self.get_camera_image(elem.x, elem.y, self.get_camera_image_callback, False)
+                self._handleCameraActions(elem)
 
         # Get the resolution for the settings button here
         if(self.mode == "resolution_get"):
@@ -289,6 +290,19 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
             self.currentLayer += 1 #Finally Increment layer when qeue was empty
             return(None)
 
+    def _handleCameraActions(self,elem):
+        if(elem.mode == "walk"):
+            # Only move printer head to position
+            self._moveCameraToCamGrid(elem.x,elem.y)
+            # Get new item from the Qeue and capture an image
+            elem = self.getNewQeueElem()
+            if(elem):
+                self.get_camera_image(elem.x, elem.y, self.get_camera_image_callback, False)
+        else:
+            self.get_camera_image(elem.x, elem.y, self.get_camera_image_callback, False)
+
+#------------------------------------------------------------------------------
+
     """Copies each image captured by the printer camera
     :param srcpath: Contains the absolute path to the target file"""
     def copyImageFiles(self, srcpath):
@@ -296,7 +310,7 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
         self.ImageArray.append(cv2.imread(srcpath))
 
     def handleImages(self):
-        if(not(self._settings.get(["forceRTL"]) or self._settings.get(["forceLTR"]))):
+        if(not(self._settings.get(["forceRTL"]) == "on" or self._settings.get(["forceLTR"]) == "on")):
             ImageMerger = imerge(self.ImageArray,self.GridInfoList[self.currentLayer][6])
             ImageMerger.mergeImages()
         else:
@@ -329,6 +343,7 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
         index = 0
         while(index < len(inputlist)):
             newCoord = Coordinate(inputlist[index].x,inputlist[(len(inputlist)-1)-index].y)
+            newCoord.set_mode(inputlist[index].mode)
             tempList.append(newCoord)
             index += 1
         self.CameraGridCoordsList[self.currentLayer] = deepcopy(tempList)
@@ -340,14 +355,10 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
         return readData
 
     def _moveCameraToCamGrid(self ,Xpos ,Ypos):
-        # switch to pimary extruder, since the head camera is relative to this extruder and the offset to PNP nozzle might not be known (firmware offset)
-        self._printer.commands("T0")
         # move camera to part position
         cmd = "G1 X" + str(Xpos) + " Y" + str(Ypos) + " F" + str(self.FEEDRATE)
-        self._logger.info("Move camera to: " + cmd)
-        self._printer.commands("G1 Z" + str(self._currentZ+5) + " F" + str(self.FEEDRATE)) # lift printhead
+        self._logger.info("Move camera to: %s , %s",Xpos,Ypos)
         self._printer.commands(cmd)
-        self._printer.commands("G1 Z" + str(camera_offset[2]) + " F" + str(self.FEEDRATE)) # lower printhead
 
     """This function sets up the necessary values for the camera lookup grid steps,
     by taking a sample picture at a certain point."""
