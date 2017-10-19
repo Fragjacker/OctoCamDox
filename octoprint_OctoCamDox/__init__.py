@@ -84,6 +84,7 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
         self.GridInfoList = []
         self.currentLayer = 0
 
+        self.fileUploadPath = None
         self.cameraImagePath = None
         self.qeue = None
 
@@ -114,6 +115,11 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
             self.get_camera_image = helpers["get_head_camera_image"]
         if helpers and "get_head_camera_pxPerMM" in helpers:
             self.get_camera_resolution = helpers["get_head_camera_pxPerMM"]
+
+    def on_settings_save(self, data):
+        # If any change was made to the settings, update the grid
+        if(self.settingsHaveChanged(data)):
+            self._handleGridCreation()
 
     def get_settings_defaults(self):
         return dict(target_folder = "",
@@ -158,45 +164,54 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
     def on_event(self, event, payload):
         #extraxt part informations from inline xmly
         if event == "FileSelected":
-            #Reset values just in case another file was loaded before
-            self.resetValues()
-            # Get the necessary values from the settings tab
-            layerHeight = self._settings.get_int(["layer_height"])
-            targetExtruder = self._settings.get(["target_extruder"])
-            #Initilize the Cameraextractor Class
-            newCamExtractor = GCodex(layerHeight,targetExtruder)
-
             #Retrieve the dirs for the GCode uploads using the filemanager
             try:
-                uploadsPath = self._file_manager.path_on_disk(payload.get("origin"), payload.get("path"))
+                self.fileUploadPath = self._file_manager.path_on_disk(payload.get("origin"), payload.get("path"))
             except NoSuchstorage:
                 self._logger.info("ERROR - File was on a SD card, reading was not possible!")
             except io.UnsupportedOperation:
                 self._logger.info("ERROR - No files are available!")
 
-            f = self._openGCodeFiles(uploadsPath)
-
-            #Extract the GCodes for the CameraPath Algortihm
-            newCamExtractor.extractCameraGCode(f)
-
-            self.GCoordsList = newCamExtractor.getCoordList()
-
-            #Get the values for the Camera grid box sizes
-            self._computeLookupGridValues()
-
-            #Now create the actual grid
-            self._createCameraGrid(
-                self.GCoordsList,
-                self.CamPixelX,
-                self.CamPixelY)
+            # Start the necessary grid creation routines if all went well
+            self._handleGridCreation()
 
             self._logger.info("Created the camera lookup grid succesfully from the file: %s", payload.get("file"))
             self._logger.info( "Current Target folder setting is: %s", self._settings.get(["target_folder"]))
-            self._updateUI("FILE", "")
+
         # Create new Folder for dropping the images for the new printjob
         if(event == "PrintStarted"):
             self.currentPrintJobDir = self.getBasePath()
             os.mkdir(self.currentPrintJobDir)
+
+    """
+    This function handles all necessary actions to create the camera lookup grid
+    """
+    def _handleGridCreation(self):
+        #Reset values just in case another file was loaded before
+        self.resetValues()
+        # Get the necessary values from the settings tab
+        layerHeight = self._settings.get_int(["layer_height"])
+        targetExtruder = self._settings.get(["target_extruder"])
+        #Initilize the Cameraextractor Class
+        newCamExtractor = GCodex(layerHeight,targetExtruder)
+
+        f = self._openGCodeFiles(self.fileUploadPath)
+
+        #Extract the GCodes for the CameraPath Algortihm
+        newCamExtractor.extractCameraGCode(f)
+        self.GCoordsList = newCamExtractor.getCoordList()
+
+        #Get the values for the Camera grid box sizes
+        self._computeLookupGridValues()
+
+        #Now create the actual grid
+        self._createCameraGrid(
+            self.GCoordsList,
+            self.CamPixelX,
+            self.CamPixelY)
+
+        # Now update the canvas with the new data
+        self._updateUI("FILE", "")
 
     def _createCameraGrid(self,inputList,CamResX,CamResY):
         templist = []
@@ -424,6 +439,14 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
         self.mode = "normal"
         self.ImageArray = []
         self.MergedImage = None
+
+    """
+    Refactored method to return a lengthy boolean function
+    """
+    def settingsHaveChanged(self, data):
+        settingsObj = octoprint.plugin.SettingsPlugin
+        return (settingsObj.on_settings_save(self, data) is not None
+        and self.fileUploadPath is not None)
 
     def _updateUI(self, event, parameter):
         data = dict(
