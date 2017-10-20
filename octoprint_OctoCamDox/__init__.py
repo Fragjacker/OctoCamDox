@@ -87,6 +87,7 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
         self.fileUploadPath = None
         self.cameraImagePath = None
         self.qeue = None
+        self.qelem = None
 
         self.CamPixelX = None
         self.CamPixelY = None
@@ -264,10 +265,10 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
             # Create the qeue for the printer camera coordinates
             self.invertYCoordinates() #Invert the Y coordinates for the printer
             self.qeue = deque(self.CameraGridCoordsList[self.currentLayer])
-            elem = self.getNewQeueElem()
+            self.qelem = self.getNewQeueElem()
             # Decide if only movement is necessary or actual picture capturing
-            if(elem):
-                self._handleCameraActions(elem)
+            if(self.qelem):
+                self.get_camera_image(self.qelem.x, self.qelem.y, self.get_camera_image_callback, True)
 
             return "G4 P1" # return dummy command
 
@@ -283,12 +284,13 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
 
         # Get the picture for the grid tiles here
         if(self.mode == "normal"):
-            # Copy found files over to the target destination folder
-            self.copyImageFiles(self.cameraImagePath)
+            if(self.qelem.mode != "walk"):
+                # Copy found files over to the target destination folder
+                self.copyImageFiles(self.cameraImagePath)
             # Get new element and continue tacking pictures if qeue not empty
-            elem = self.getNewQeueElem()
-            if(elem):
-                self._handleCameraActions(elem)
+            self.qelem = self.getNewQeueElem()
+            if(self.qelem):
+                self.get_camera_image(self.qelem.x, self.qelem.y, self.get_camera_image_callback, False)
 
         # Get the resolution for the settings button here
         if(self.mode == "resolution_get"):
@@ -305,16 +307,16 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
             self.currentLayer += 1 #Finally Increment layer when qeue was empty
             return(None)
 
-    def _handleCameraActions(self,elem):
-        if(elem.mode == "walk"):
-            # Only move printer head to position
-            self._moveCameraToCamGrid(elem.x,elem.y)
-            # Get new item from the Qeue and capture an image
-            elem = self.getNewQeueElem()
-            if(elem):
-                self.get_camera_image(elem.x, elem.y, self.get_camera_image_callback, False)
-        else:
-            self.get_camera_image(elem.x, elem.y, self.get_camera_image_callback, False)
+    # def _handleCameraActions(self,elem):
+    #     if(elem.mode == "walk"):
+    #         # Only move printer head to position
+    #         self._moveCameraToCamGrid(elem.x,elem.y)
+    #         # Get new item from the Qeue and capture an image
+    #         elem = self.getNewQeueElem()
+    #         if(elem):
+    #             self.get_camera_image(elem.x, elem.y, self.get_camera_image_callback, False)
+    #     else:
+    #         self.get_camera_image(elem.x, elem.y, self.get_camera_image_callback, False)
 
 #------------------------------------------------------------------------------
 
