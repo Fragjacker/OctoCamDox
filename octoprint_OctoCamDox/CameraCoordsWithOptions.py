@@ -204,10 +204,10 @@ class CameraGridMakerWithOptions(CCGet.CameraGridMaker, object):
         localList = deepcopy(self.CameraCoords)
         while (index < len(self.CameraCoords)):
             if(self._settings.get(["forceRTL"]) == 'on'):
-                newCoord = Coordinate(self.CameraCoords[index].x + self.getCampixelX(),self.CameraCoords[index].y)
+                newCoord = Coordinate(self.CameraCoords[index].x + self.getCampixelX(),self.CameraCoords[index].y - self.getCampixelY())
                 newCoord.set_mode("walk")
             elif(self._settings.get(["forceLTR"]) == 'on'):
-                newCoord = Coordinate(self.CameraCoords[index].x - self.getCampixelX(),self.CameraCoords[index].y)
+                newCoord = Coordinate(self.CameraCoords[index].x - self.getCampixelX(),self.CameraCoords[index].y - self.getCampixelY())
                 newCoord.set_mode("walk")
             localList.insert(index+counter, newCoord)
             counter += 1

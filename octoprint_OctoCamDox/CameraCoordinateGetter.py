@@ -348,11 +348,11 @@ class CameraGridMaker:
         localList = deepcopy(self.CameraCoords)
         while (index < len(self.CameraCoords)):
             if(self.switcher is 0):
-                newCoord = Coordinate(self.CameraCoords[index].x + self.getCampixelX(),self.CameraCoords[index].y)
+                newCoord = Coordinate(self.CameraCoords[index].x + self.getCampixelX(),self.CameraCoords[index].y - self.getCampixelY())
                 newCoord.set_mode("walk")
                 self.switcher += 1
             elif(self.switcher is 1):
-                newCoord = Coordinate(self.CameraCoords[index].x - self.getCampixelX(),self.CameraCoords[index].y)
+                newCoord = Coordinate(self.CameraCoords[index].x - self.getCampixelX(),self.CameraCoords[index].y - self.getCampixelY())
                 newCoord.set_mode("walk")
                 self.switcher -= 1
             localList.insert(index+counter, newCoord)
