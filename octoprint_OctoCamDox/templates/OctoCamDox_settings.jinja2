@@ -36,6 +36,14 @@
         </div>
     </div>
 
+    <h3>{{ _('Camera Documentation Toggle') }}</h3>
+    <div class="control-group">
+        <label class="control-label" for="grid-options-switch-grid-gen">{{ _('Activate Camera Documentation: ') }}</label>
+        <div class="controls">
+            <input type="checkbox" name="toggleCamDox" class="input-block-level" data-bind="checked: settings.plugins.OctoCamDox.activateCamGrab" id="option-toggle-cam-grab">
+        </div>
+    </div>
+
     <h3>{{ _('Camera Grid Options') }}</h3>
     <div class="control-group">
         <label class="control-label" for="grid-options-normal">{{ _('Use normal mode: ') }}</label>

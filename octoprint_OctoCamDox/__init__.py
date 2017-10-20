@@ -131,7 +131,8 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
                     normalMode = "on",
                     forceRTL = "off",
                     forceLTR = "off",
-                    addSlipFlaps = False)
+                    addSlipFlaps = False,
+                    activateCamGrab = True)
 
     def get_template_configs(self):
         return [
@@ -252,23 +253,24 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
     """
     def hook_gcode_queuing(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
         if "M942" in cmd:
-            self._logger.info( "Qeued command to start the Camera documentation" )
+            if(self._settings.get(["activateCamGrab"]) is True):
+                self._logger.info( "Qeued command to start the Camera documentation" )
 
-            # Get current Z Position
-            if self._printer.get_current_data()["currentZ"]:
-                self._currentZ = float(self._printer.get_current_data()["currentZ"])
-            else:
-                self._currentZ = 0.0
+                # Get current Z Position
+                if self._printer.get_current_data()["currentZ"]:
+                    self._currentZ = float(self._printer.get_current_data()["currentZ"])
+                else:
+                    self._currentZ = 0.0
 
-            # switch to pimary extruder, since the head camera is relative to this extruder and the offset to PNP nozzle might not be known (firmware offset)
-            self._printer.commands("T0")
-            # Create the qeue for the printer camera coordinates
-            self.invertYCoordinates() #Invert the Y coordinates for the printer
-            self.qeue = deque(self.CameraGridCoordsList[self.currentLayer])
-            self.qelem = self.getNewQeueElem()
-            # Decide if only movement is necessary or actual picture capturing
-            if(self.qelem):
-                self.get_camera_image(self.qelem.x, self.qelem.y, self.get_camera_image_callback, True)
+                # switch to pimary extruder, since the head camera is relative to this extruder and the offset to PNP nozzle might not be known (firmware offset)
+                self._printer.commands("T0")
+                # Create the qeue for the printer camera coordinates
+                self.invertYCoordinates() #Invert the Y coordinates for the printer
+                self.qeue = deque(self.CameraGridCoordsList[self.currentLayer])
+                self.qelem = self.getNewQeueElem()
+                # Decide if only movement is necessary or actual picture capturing
+                if(self.qelem):
+                    self.get_camera_image(self.qelem.x, self.qelem.y, self.get_camera_image_callback, True)
 
             return "G4 P1" # return dummy command
 
@@ -353,13 +355,18 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
         timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d__%H'+'h'+'_%M'+'m'+'_%S'+'s')
         return timestamp
 
-    """Invert the Y coordinates for the printer."""
+    """
+    Invert the Y coordinates for the printer.
+    """
     def invertYCoordinates(self):
         inputlist = self.CameraGridCoordsList[self.currentLayer]
+        centerY = self.GridInfoList[self.currentLayer][5]
         tempList = []
         index = 0
         while(index < len(inputlist)):
-            newCoord = Coordinate(inputlist[index].x,inputlist[(len(inputlist)-1)-index].y)
+            delta = (inputlist[index].y - centerY)*2
+            newpos = inputlist[index].y - delta
+            newCoord = Coordinate(inputlist[index].x, newpos)
             newCoord.set_mode(inputlist[index].mode)
             tempList.append(newCoord)
             index += 1
