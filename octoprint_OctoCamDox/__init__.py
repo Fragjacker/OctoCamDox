@@ -102,6 +102,8 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
         self.ImageArray = [] #Stores the incoming images in an array
         self.MergedImage = None #Is created by stitching the tile images together
 
+        self.M942IgnoredTimes = 0 #Used to ignore the first M942 command
+
     def on_after_startup(self):
     #     self.imgproc = ImageProcessing(
     #         float(self._settings.get(["tray", "boxsize"])),
@@ -182,6 +184,12 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
 
         # Create new Folder for dropping the images for the new printjob
         if(event == "PrintStarted"):
+            # Reset the values for each new printjob
+            self.ImageArray = []
+            self.MergedImage = None
+            self.currentLayer = 0
+            self.M942IgnoredTimes = 0
+            # Create a new folder for the incoming images
             self.currentPrintJobDir = self.getBasePath()
             os.mkdir(self.currentPrintJobDir)
 
@@ -254,24 +262,27 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
     def hook_gcode_queuing(self, comm_instance, phase, cmd, cmd_type, gcode, *args, **kwargs):
         if "M942" in cmd:
             if(self._settings.get(["activateCamGrab"]) is True):
-                self._logger.info( "Qeued command to start the Camera documentation" )
+                # HACK: Workaround to ignore one M942 command
+                if(self.M942IgnoredTimes >= 1):
+                    self._logger.info( "Qeued command to start the Camera documentation" )
 
-                # Get current Z Position
-                if self._printer.get_current_data()["currentZ"]:
-                    self._currentZ = float(self._printer.get_current_data()["currentZ"])
-                else:
-                    self._currentZ = 0.0
+                    # Get current Z Position
+                    if self._printer.get_current_data()["currentZ"]:
+                        self._currentZ = float(self._printer.get_current_data()["currentZ"])
+                    else:
+                        self._currentZ = 0.0
 
-                # switch to pimary extruder, since the head camera is relative to this extruder and the offset to PNP nozzle might not be known (firmware offset)
-                self._printer.commands("T0")
-                # Create the qeue for the printer camera coordinates
-                self.invertYCoordinates() #Invert the Y coordinates for the printer
-                self.qeue = deque(self.CameraGridCoordsList[self.currentLayer])
-                self.qelem = self.getNewQeueElem()
-                # Decide if only movement is necessary or actual picture capturing
-                if(self.qelem):
-                    self.get_camera_image(self.qelem.x, self.qelem.y, self.get_camera_image_callback, True)
-
+                    # switch to pimary extruder, since the head camera is relative to this extruder and the offset to PNP nozzle might not be known (firmware offset)
+                    self._printer.commands("T0")
+                    # Create the qeue for the printer camera coordinates
+                    self.invertYCoordinates() #Invert the Y coordinates for the printer
+                    self.qeue = deque(self.CameraGridCoordsList[self.currentLayer])
+                    self.qelem = self.getNewQeueElem()
+                    # Decide if only movement is necessary or actual picture capturing
+                    if(self.qelem):
+                        self.get_camera_image(self.qelem.x, self.qelem.y, self.get_camera_image_callback, True)
+                # Increment M942IgnoredTimes
+                self.M942IgnoredTimes += 1
             return "G4 P1" # return dummy command
 
     	if "M945" in cmd:
@@ -448,6 +459,7 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
         self.mode = "normal"
         self.ImageArray = []
         self.MergedImage = None
+        self.M942IgnoredTimes = 0
 
     """
     Refactored method to return a lengthy boolean function
