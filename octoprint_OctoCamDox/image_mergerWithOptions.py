@@ -24,29 +24,28 @@ class ImageMergerWithOptions(imerge.ImageMerger, object):
         self.MergedImage = None
         completedTwoRuns = False # Is true when there's two rows full
         # Stitch start from left to right
-        if(self.checkForProperStitchCase() is "LeftToRight"):
-            # Now stitch the other images
-            i = 0
-            rowcounter = 1
-            numberOfRuns = 0
-            colLength = len(self.ImageArray) / tileRows
-            while(i < len(self.ImageArray)):
-                if(colLength is rowcounter):
-                    rowcounter = 1
-                    i += 1
-                    numberOfRuns += 1
-                    if(numberOfRuns >= 2):
-                        completedTwoRuns = True
+        i = 0
+        rowcounter = 1
+        numberOfRuns = 0
+        colLength = len(self.ImageArray) / tileRows
+        while(i < len(self.ImageArray)):
+            if(colLength is rowcounter):
+                rowcounter = 1
+                i += 1
+                numberOfRuns += 1
+                if(numberOfRuns >= 2):
+                    completedTwoRuns = True
 
-                    # Stich the ready made rows vertically now
-                    if(completedTwoRuns is True and self.MergedImage is None):
-                        self.MergedImage = self.stitchImages(tempImage1,tempImage2,"vertical")
-                        tempImage1 = None
-                        tempImage2 = None
-                    elif(completedTwoRuns is True and self.MergedImage is not None):
-                        self.MergedImage = self.stitchImages(self.MergedImage,tempImage1,"vertical")
-                        tempImage1 = None
+                # Stich the ready made rows vertically now
+                if(completedTwoRuns is True and self.MergedImage is None):
+                    self.MergedImage = self.stitchImages(tempImage1,tempImage2,"vertical")
+                    tempImage1 = None
+                    tempImage2 = None
+                elif(completedTwoRuns is True and self.MergedImage is not None):
+                    self.MergedImage = self.stitchImages(self.MergedImage,tempImage1,"vertical")
+                    tempImage1 = None
 
+            if(self.checkForProperStitchCase() is "LeftToRight"):
                 if(i < len(self.ImageArray)):
                     if(numberOfRuns >= 2):
                         if(tempImage1 is not None):
@@ -65,33 +64,7 @@ class ImageMergerWithOptions(imerge.ImageMerger, object):
                             if(tempImage2 is None):
                                 tempImage2 = self.stitchImages(self.ImageArray[i],self.ImageArray[i+1],"horizontal")
 
-                    i += 1
-                    rowcounter += 1
-
-        # Stitch start from right to left
-        if(self.checkForProperStitchCase() is "RightToLeft"):
-            # Now stitch the other images
-            i = 0
-            rowcounter = 1
-            numberOfRuns = 0
-            colLength = len(self.ImageArray) / tileRows
-            while(i < len(self.ImageArray)):
-                if(colLength is rowcounter):
-                    rowcounter = 1
-                    i += 1
-                    numberOfRuns += 1
-                    if(numberOfRuns >= 2):
-                        completedTwoRuns = True
-
-                    # Stich the ready made rows vertically now
-                    if(completedTwoRuns is True and self.MergedImage is None):
-                        self.MergedImage = self.stitchImages(tempImage1,tempImage2,"vertical")
-                        tempImage1 = None
-                        tempImage2 = None
-                    elif(completedTwoRuns is True and self.MergedImage is not None):
-                        self.MergedImage = self.stitchImages(self.MergedImage,tempImage1,"vertical")
-                        tempImage1 = None
-
+            if(self.checkForProperStitchCase() is "RightToLeft"):
                 if(i < len(self.ImageArray)):
                     if(numberOfRuns >= 2):
                         if(tempImage1 is not None):
@@ -110,8 +83,8 @@ class ImageMergerWithOptions(imerge.ImageMerger, object):
                             if(tempImage2 is None):
                                 tempImage2 = self.stitchImages(self.ImageArray[i+1],self.ImageArray[i],"horizontal")
 
-                    i += 1
-                    rowcounter += 1
+            i += 1
+            rowcounter += 1
 
     """Decides the proper case for the Stitching process."""
     def checkForProperStitchCase(self):
