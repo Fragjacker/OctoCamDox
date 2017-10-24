@@ -20,16 +20,14 @@ class ImageMerger():
         tempImage1 = None
         tempImage2 = None
         completedTwoRuns = False # Is true when there's two rows full
-        # Stitch start from left to right
-        if(self.checkForProperStitchCase(tileRows) is "LeftToRight"):
-            # Now stitch the other images
-            i = 0
-            rowcounter = 1
-            colLength = len(self.ImageArray) / tileRows
-            direction = "LeftToRight"
-            while(i < len(self.ImageArray)):
-                if(colLength is rowcounter):
-                    rowcounter = 1
+        i = 0
+        rowcounter = 1
+        colLength = len(self.ImageArray) / tileRows
+        direction = "LeftToRight"
+        while(i < len(self.ImageArray)):
+            if(colLength is rowcounter):
+                rowcounter = 1
+                if(self.checkForProperStitchCase(tileRows) is "LeftToRight"):
                     if(direction is "LeftToRight"):
                         direction = "RightToLeft"
                         i += 1
@@ -37,45 +35,7 @@ class ImageMerger():
                         direction = "LeftToRight"
                         completedTwoRuns = True
                         i += 1
-                    # Stich the ready made rows vertically now
-                    if(completedTwoRuns is True and self.MergedImage is None):
-                        if(direction is "RightToLeft"):
-                            self.MergedImage = self.stitchImages(tempImage2,tempImage1,"vertical")
-                            tempImage2 = None
-                        if(direction is "LeftToRight"):
-                            self.MergedImage = self.stitchImages(tempImage1,tempImage2,"vertical")
-                            tempImage1 = None
-                    elif(completedTwoRuns is True and self.MergedImage is not None):
-                        if(direction is "RightToLeft"):
-                            self.MergedImage = self.stitchImages(self.MergedImage,tempImage1,"vertical")
-                            tempImage2 = None
-                        if(direction is "LeftToRight"):
-                            self.MergedImage = self.stitchImages(self.MergedImage,tempImage2,"vertical")
-                            tempImage1 = None
-
-                if(i < len(self.ImageArray)):
-                    if(direction is "LeftToRight" and tempImage1 is not None):
-                        tempImage1 = self.stitchImages(tempImage1,self.ImageArray[i+1],"horizontal")
-                    if(direction is "LeftToRight" and tempImage1 is None):
-                        tempImage1 = self.stitchImages(self.ImageArray[i],self.ImageArray[i+1],"horizontal")
-                    if(direction is "RightToLeft" and tempImage2 is not None):
-                        tempImage2 = self.stitchImages(self.ImageArray[i+1],tempImage2,"horizontal")
-                    if(direction is "RightToLeft" and tempImage2 is None):
-                        tempImage2 = self.stitchImages(self.ImageArray[i+1],self.ImageArray[i],"horizontal")
-
-                    i += 1
-                    rowcounter += 1
-
-        # Stitch start from right to left
-        if(self.checkForProperStitchCase(tileRows) is "RightToLeft"):
-            # Now stitch the other images
-            i = 0
-            rowcounter = 1
-            colLength = len(self.ImageArray) / tileRows
-            direction = "RightToLeft"
-            while(i < len(self.ImageArray)):
-                if(colLength is rowcounter):
-                    rowcounter = 1
+                if(self.checkForProperStitchCase(tileRows) is "RightToLeft"):
                     if(direction is "RightToLeft"):
                         direction = "LeftToRight"
                         i += 1
@@ -83,34 +43,34 @@ class ImageMerger():
                         direction = "RightToLeft"
                         completedTwoRuns = True
                         i += 1
-                    # Stich the ready made rows vertically now
-                    if(completedTwoRuns is True and self.MergedImage is None):
-                        if(direction is "RightToLeft"):
-                            self.MergedImage = self.stitchImages(tempImage2,tempImage1,"vertical")
-                            tempImage2 = None
-                        if(direction is "LeftToRight"):
-                            self.MergedImage = self.stitchImages(tempImage1,tempImage2,"vertical")
-                            tempImage1 = None
-                    elif(completedTwoRuns is True and self.MergedImage is not None):
-                        if(direction is "RightToLeft"):
-                            self.MergedImage = self.stitchImages(self.MergedImage,tempImage1,"vertical")
-                            tempImage2 = None
-                        if(direction is "LeftToRight"):
-                            self.MergedImage = self.stitchImages(self.MergedImage,tempImage2,"vertical")
-                            tempImage1 = None
+                # Stich the ready made rows vertically now
+                if(completedTwoRuns is True and self.MergedImage is None):
+                    if(direction is "RightToLeft"):
+                        self.MergedImage = self.stitchImages(tempImage2,tempImage1,"vertical")
+                        tempImage2 = None
+                    if(direction is "LeftToRight"):
+                        self.MergedImage = self.stitchImages(tempImage1,tempImage2,"vertical")
+                        tempImage1 = None
+                elif(completedTwoRuns is True and self.MergedImage is not None):
+                    if(direction is "RightToLeft"):
+                        self.MergedImage = self.stitchImages(self.MergedImage,tempImage1,"vertical")
+                        tempImage2 = None
+                    if(direction is "LeftToRight"):
+                        self.MergedImage = self.stitchImages(self.MergedImage,tempImage2,"vertical")
+                        tempImage1 = None
 
-                if(i < len(self.ImageArray)):
-                    if(direction is "LeftToRight" and tempImage1 is not None):
-                        tempImage1 = self.stitchImages(tempImage1,self.ImageArray[i+1],"horizontal")
-                    if(direction is "LeftToRight" and tempImage1 is None):
-                        tempImage1 = self.stitchImages(self.ImageArray[i],self.ImageArray[i+1],"horizontal")
-                    if(direction is "RightToLeft" and tempImage2 is not None):
-                        tempImage2 = self.stitchImages(self.ImageArray[i+1],tempImage2,"horizontal")
-                    if(direction is "RightToLeft" and tempImage2 is None):
-                        tempImage2 = self.stitchImages(self.ImageArray[i+1],self.ImageArray[i],"horizontal")
+            if(i < len(self.ImageArray)):
+                if(direction is "LeftToRight" and tempImage1 is not None):
+                    tempImage1 = self.stitchImages(tempImage1,self.ImageArray[i+1],"horizontal")
+                if(direction is "LeftToRight" and tempImage1 is None):
+                    tempImage1 = self.stitchImages(self.ImageArray[i],self.ImageArray[i+1],"horizontal")
+                if(direction is "RightToLeft" and tempImage2 is not None):
+                    tempImage2 = self.stitchImages(self.ImageArray[i+1],tempImage2,"horizontal")
+                if(direction is "RightToLeft" and tempImage2 is None):
+                    tempImage2 = self.stitchImages(self.ImageArray[i+1],self.ImageArray[i],"horizontal")
 
-                    i += 1
-                    rowcounter += 1
+                i += 1
+                rowcounter += 1
 
     """Decides the proper case for the Stitching process."""
     def checkForProperStitchCase(self,tileRows):
