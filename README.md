@@ -3,7 +3,7 @@ OctoCamDox Plugin for Octoprint which allows for fully automated picture grabbin
 
 # Introduction
 OctoCamDox is an extension that allows Octoprint to use printer head mounted industrial cameras to consecutively take images and then build a large high definition picture for each printed layer.
-It currently requires the following hardware extensions::
+It currently requires the following hardware extensions:
 * A head camera to take close-up images from the printed layers.
 
 ![OctoCamDox-Overview](https://user-images.githubusercontent.com/19975052/31948581-95886530-b8d7-11e7-80ec-65bee74951a3.JPG)
@@ -14,16 +14,16 @@ To achieve higher compatibility and modularity, OctoCamDox doesn't access the ca
 
 ## Installing the package
 The plugin itself can be installed as any regular python package:
-`pip install https://github.com/platsch/OctoCamDox/archive/master.zip`
+`pip install https://github.com/Fragjacker/OctoCamDox/archive/master.zip`
 
 Make sure you use the same Python environment that you installed OctoPrint under, otherwise the plugin won't be able to satisfy its dependencies. Further information can be found in the Octoprint [documentation](http://docs.octoprint.org/en/devel/plugins/using.html)
 OctoCamDox requires numpy and opencv2. Try installing those packages by hand if automatic dependency resolving fails.
 
 ## Data Format
-The information for the Camera system is integrated into normal gcode files as a M942 command somewhere in the gcode. OctoCamDox extracts the required information automatically everytime a gcode file is loaded in Octoprint and will actively hook on the M942 command to start the image capturing process. Make sure the M942 command is inserted after a layer change when using your slicing software, such as slic3r.
+The information for the Camera system is integrated into normal gcode files as a M942 command somewhere inside the gcode. OctoCamDox extracts the required information automatically everytime a gcode file is loaded in Octoprint and will actively hook on the M942 command to start the image capturing process. Make sure the M942 command is inserted after a true layer change when using your slicing software, such as slic3r.
 
 # Configuration
-Good configuration and calibration of the printer is absolutely crucial to successfully generate high definition close-up pictures using a head camera.
+Good configuration and calibration of the printer is absolutely crucial to successfully generate high definition close-up pictures using a head camera. OctoCamDox provides some additional options to influence the generation of the camera tile grid, that acts as a roadmap for the printer head mounted camera.
 ## Program constants
 * Picture width: The width of the camera picture in pixels
 * Picture height: The width of the camera picture in pixels

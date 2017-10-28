@@ -53,6 +53,7 @@ from .image_mergerWithOptions import ImageMergerWithOptions as imergeOpts
 
 
 __plugin_name__ = "OctoCamDox"
+__plugin_version__ = "0.9"
 
 #instantiate plugin object and register hook for gcode injection
 def __plugin_load__():
