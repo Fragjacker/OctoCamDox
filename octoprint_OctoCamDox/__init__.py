@@ -265,6 +265,9 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
             if(self._settings.get(["activateCamGrab"]) is True):
                 # HACK: Workaround to ignore one M942 command
                 if(self.M942IgnoredTimes >= 1):
+                    #Stop printing process to prevent new GCodes to be send
+                    if(self._printer.is_printing()):
+                        self._printer.pause_print()
                     self._logger.info( "Qeued command to start the Camera documentation" )
 
                     # Get current Z Position
@@ -289,7 +292,10 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
     	if "M945" in cmd:
     	    self.currentPrintJobDir = self.getBasePath()
             os.mkdir(self.currentPrintJobDir)
-
+    """
+    Implementation of the callback function to actually perform the image
+    capturing, based on the injected M942 code.
+    """
     def get_camera_image_callback(self, path):
     	print "Returned image path was: "
     	print path
@@ -311,14 +317,21 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
             self.our_pic_width,self.our_pic_height = self._get_image_size(self.cameraImagePath)
             self._logger.info("The found image resolution was: %dx%d",self.our_pic_width,self.our_pic_width)
             self.mode = "normal" # Return to normal mode after finishing
-
+    """
+    Returns the next element that the camera should goto in order to take images
+    """
     def getNewQeueElem(self):
+        #While the qeue still contains elements, return them.
+        #Else prepare for next layer.
         if(self.qeue):
             return self.qeue.popleft()
         else:
             #Start stitching images when qeue is empty
             self.handleImages()
             self.currentLayer += 1 #Finally Increment layer when qeue was empty
+            #Resume printing process after all Images have been taken
+            if(self._printer.is_paused()):
+                self._printer.resume_print()
             return(None)
 
     # def _handleCameraActions(self,elem):
