@@ -22,6 +22,7 @@ class ImageMerger():
         completedTwoRuns = False # Is true when there's two rows full
         i = 0
         rowcounter = 1
+        numberOfRuns = 0
         colLength = len(self.ImageArray) / tileRows
         direction = "LeftToRight"
         while(i < len(self.ImageArray)):
@@ -30,19 +31,17 @@ class ImageMerger():
                 if(self.checkForProperStitchCase(tileRows) is "LeftToRight"):
                     if(direction is "LeftToRight"):
                         direction = "RightToLeft"
-                        i += 1
                     elif(direction is "RightToLeft"):
                         direction = "LeftToRight"
-                        completedTwoRuns = True
-                        i += 1
                 if(self.checkForProperStitchCase(tileRows) is "RightToLeft"):
                     if(direction is "RightToLeft"):
                         direction = "LeftToRight"
-                        i += 1
                     elif(direction is "LeftToRight"):
                         direction = "RightToLeft"
-                        completedTwoRuns = True
-                        i += 1
+                i += 1
+                numberOfRuns += 1
+                if(numberOfRuns >= 2):
+                    completedTwoRuns = True
                 # Stich the ready made rows vertically now
                 if(completedTwoRuns is True and self.MergedImage is None):
                     if(direction is "RightToLeft"):
