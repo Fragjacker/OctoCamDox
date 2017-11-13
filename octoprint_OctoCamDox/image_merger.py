@@ -21,14 +21,14 @@ class ImageMerger():
             self.mergeMultiLine()
 
     def mergeSingleLine(self):
-        # Update tile rows before we start stitching
+        # Single rows alwas sticht from right to left.
         tempImage1 = None
         i = 0
         while(i < len(self.ImageArray)):
             if(tempImage1 is not None):
-                tempImage1 = self.stitchImages(tempImage1,self.ImageArray[i],"horizontal")
+                tempImage1 = self.stitchImages(self.ImageArray[i],tempImage1,"horizontal")
             if(tempImage1 is None):
-                tempImage1 = self.stitchImages(self.ImageArray[i],self.ImageArray[i+1],"horizontal")
+                tempImage1 = self.stitchImages(self.ImageArray[i+1],self.ImageArray[i],"horizontal")
                 i += 1
             i += 1
 
