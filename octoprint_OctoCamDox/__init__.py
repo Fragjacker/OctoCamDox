@@ -276,8 +276,6 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
                     else:
                         self._currentZ = 0.0
 
-                    # switch to pimary extruder, since the head camera is relative to this extruder and the offset to PNP nozzle might not be known (firmware offset)
-                    self._printer.commands("T0")
                     # Create the qeue for the printer camera coordinates
                     self.invertYCoordinates() #Invert the Y coordinates for the printer
                     self.qeue = deque(self.CameraGridCoordsList[self.currentLayer])
