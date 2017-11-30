@@ -15,6 +15,26 @@ class ImageMerger():
         self.tileRows = tileRows
 
     def mergeImages(self):
+        if(self.tileRows == 1):
+            self.mergeSingleLine()
+        elif(self.tileRows > 1):
+            self.mergeMultiLine()
+
+    def mergeSingleLine(self):
+        # Single rows alwas sticht from right to left.
+        tempImage1 = None
+        i = 0
+        while(i < len(self.ImageArray)):
+            if(tempImage1 is not None):
+                tempImage1 = self.stitchImages(self.ImageArray[i],tempImage1,"horizontal")
+            if(tempImage1 is None):
+                tempImage1 = self.stitchImages(self.ImageArray[i+1],self.ImageArray[i],"horizontal")
+                i += 1
+            i += 1
+
+        self.MergedImage = tempImage1
+
+    def mergeMultiLine(self):
         # Update tile rows before we start stitching
         tileRows = self.tileRows
         tempImage1 = None
