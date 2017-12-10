@@ -165,9 +165,8 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
         return flask.jsonify(width = self.our_pic_width,
                              height = self.our_pic_height)
 
-    # Use the on_event hook to extract XML data every time a new file has been loaded by the user
+    # Use the on_event hook to extract GCode data every time a new file has been loaded by the user
     def on_event(self, event, payload):
-        #extraxt part informations from inline xmly
         if event == "FileSelected":
             #Retrieve the dirs for the GCode uploads using the filemanager
             try:
@@ -223,6 +222,12 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
 
         # Now update the canvas with the new data
         self._updateUI("FILE", "")
+
+    def _computeLookupGridValues(self):
+        PixelPerMillimeter = self.get_camera_resolution("HEAD")
+        # Divide the resolution by the PixelPerMillimeter ratio
+        self.CamPixelX = self._settings.get_int(["picture_width"]) / PixelPerMillimeter["x"]
+        self.CamPixelY = self._settings.get_int(["picture_height"]) / PixelPerMillimeter["y"]
 
     def _createCameraGrid(self,inputList,CamResX,CamResY):
         templist = []
@@ -412,12 +417,6 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
     def _setNewGridResolution(self):
         # Get an image to determine the camera resolution
         self.get_camera_image(0, 0, self.get_camera_image_callback, True)
-
-    def _computeLookupGridValues(self):
-        PixelPerMillimeter = self.get_camera_resolution("HEAD")
-        # Divide the resolution by the PixelPerMillimeter ratio
-        self.CamPixelX = self._settings.get_int(["picture_width"]) / PixelPerMillimeter["x"]
-        self.CamPixelY = self._settings.get_int(["picture_height"]) / PixelPerMillimeter["y"]
 
     """This function retrieves the resolution of the .png, .gif or .jpeg image file passed into it.
     This function was copypasted from https://stackoverflow.com/questions/8032642/how-to-obtain-image-size-using-standard-python-class-without-using-external-lib
