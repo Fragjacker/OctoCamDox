@@ -79,7 +79,6 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
 
 
     def __init__(self):
-        self._currentZ = None
         self.GCoordsList = []
         self.CameraGridCoordsList = []
         self.GridInfoList = []
@@ -275,12 +274,6 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
                         self._printer.pause_print()
                     self._logger.info( "Qeued command to start the Camera documentation" )
 
-                    # Get current Z Position
-                    if self._printer.get_current_data()["currentZ"]:
-                        self._currentZ = float(self._printer.get_current_data()["currentZ"])
-                    else:
-                        self._currentZ = 0.0
-
                     # Create the qeue for the printer camera coordinates
                     self.invertYCoordinates() #Invert the Y coordinates for the printer
                     self.qeue = deque(self.CameraGridCoordsList[self.currentLayer])
@@ -310,7 +303,7 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
             if(self.qelem.mode != "walk"):
                 # Copy found files over to the target destination folder
                 self.copyImageFiles(self.cameraImagePath)
-            # Get new element and continue tacking pictures if qeue not empty
+            # Get new element and continue taking pictures if qeue not empty
             self.qelem = self.getNewQeueElem()
             if(self.qelem):
                 self.get_camera_image(self.qelem.x, self.qelem.y, self.get_camera_image_callback, False)
@@ -336,17 +329,6 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
             if(self._printer.is_paused()):
                 self._printer.resume_print()
             return(None)
-
-    # def _handleCameraActions(self,elem):
-    #     if(elem.mode == "walk"):
-    #         # Only move printer head to position
-    #         self._moveCameraToCamGrid(elem.x,elem.y)
-    #         # Get new item from the Qeue and capture an image
-    #         elem = self.getNewQeueElem()
-    #         if(elem):
-    #             self.get_camera_image(elem.x, elem.y, self.get_camera_image_callback, False)
-    #     else:
-    #         self.get_camera_image(elem.x, elem.y, self.get_camera_image_callback, False)
 
 #------------------------------------------------------------------------------
 
@@ -455,7 +437,6 @@ class OctoCamDox(octoprint.plugin.StartupPlugin,
             return width, height
 
     def resetValues(self):
-        self._currentZ = None
         self.GCoordsList = []
         self.CameraGridCoordsList = []
         self.GridInfoList = []

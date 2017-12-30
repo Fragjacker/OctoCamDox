@@ -44,7 +44,7 @@ class ImageMerger():
         rowcounter = 1
         numberOfRuns = 0
         colLength = len(self.ImageArray) / tileRows
-        direction = "LeftToRight"
+        direction = self.checkForProperStitchCase(tileRows)
         while(i < len(self.ImageArray)):
             if(colLength is rowcounter):
                 rowcounter = 1
@@ -94,10 +94,9 @@ class ImageMerger():
     """Decides the proper case for the Stitching process."""
     def checkForProperStitchCase(self,tileRows):
         check1 = (tileRows / 2) % 2
-        check2 = (tileRows / 3) % 3
-        if(check1 or check2 is 1):
+        if(check1 is 1):
             return "LeftToRight"
-        if(check1 or check2 is 0):
+        elif(check1 is 0):
             return "RightToLeft"
 
     def stitchImages(self,IncomingImage1,IncomingImage2,mode):

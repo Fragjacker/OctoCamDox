@@ -20,17 +20,9 @@ function camGrid(width, height, infoList, currentSelectedLayer, GCodeCoordinates
 				_drawRectangularGrid();
     };
 
-		self.drawPrintables = function() {
-			// console.log("Draw Printables entered")
-			// console.log("Resolution of the Cam box is width: " + _camBoxWidth + " height was: " + _camBoxHeight)
-			// console.log("First GCode coordinate X: " + _GCodeCoordinates[0][0][0] + " Y: " + _GCodeCoordinates[0][0][0])
-			_drawLinesOnCanvas(_GCodeCoordinates,_currentSelectedLayer,0.25,"black");
-		}
-
 		self.drawGCodeLines = function() {
+			// Draw the GCode coordinates on the canvas
 			_drawLinesOnCanvas(_GCodeCoordinates,_currentSelectedLayer,0.25,"black");
-			// Draw a circle in the centerX
-			_drawCircle(_centerX,_centerY,1,"rgb(255,255,0)");
 		}
 
 		self.drawAllGridCenters = function () {
@@ -42,6 +34,7 @@ function camGrid(width, height, infoList, currentSelectedLayer, GCodeCoordinates
 		}
 
 		self.drawCameragrid = function() {
+			// Draw the Camera tile grid on the canvas
 			_drawCamGrid(_currentSelectedLayer);
 		}
 
@@ -110,9 +103,7 @@ function camGrid(width, height, infoList, currentSelectedLayer, GCodeCoordinates
 
                 ctx.lineWidth = 0.5;
                 ctx.strokeStyle = "green";
-                // ctx.fillStyle = "white";
                 ctx.strokeRect (x-(_camBoxWidth/2),y-(_camBoxHeight/2),_camBoxWidth,_camBoxHeight);
-                // ctx.fillRect (width*size+ctx.lineWidth,(_camBoxHeight-1)*size-height*size+ctx.lineWidth,size-ctx.lineWidth,size-ctx.lineWidth);
 								ctx.restore();
             }
         }
